@@ -1,0 +1,113 @@
+/* Main CSS for Lab Bahasa AI */
+
+/* Global styles */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-weight: bold;
+}
+
+.jumbotron {
+  background-color: #f0f8ff;
+  border-radius: 0.5rem;
+  padding: 2rem;
+}
+
+.footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e7e7e7;
+}
+
+/* Card styling */
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+  font-weight: 500;
+}
+
+/* Form styling */
+.form-control:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+textarea.form-control {
+  min-height: 120px;
+}
+
+/* Grammar correction page */
+#corrected-text {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+}
+
+/* Speech recognition page */
+#record-button {
+  min-width: 140px;
+}
+
+#recording-timer {
+  font-family: monospace;
+  font-size: 1.2rem;
+}
+
+/* Adaptive learning page */
+.question-item {
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  background-color: #fff;
+}
+
+.feedback-container .alert {
+  margin-bottom: 0;
+}
+
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.progress {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+
+  .row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+  }
+
+  .col-md-4,
+  .col-md-6,
+  .col-md-8,
+  .col-md-12 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .jumbotron {
+    padding: 1.5rem;
+  }
+}

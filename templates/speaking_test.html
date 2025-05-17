@@ -1,0 +1,535 @@
+{% extends 'base.html' %} {% block title %}Tes Speaking - Lab Bahasa{% endblock
+%} {% block extra_head %}
+<style>
+  .question-container {
+    display: none;
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  .question-container.active {
+    display: block;
+    animation: fadeIn 0.5s;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .recording-controls {
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+  }
+  .record-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #dc3545;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .record-btn:hover {
+    background-color: #c82333;
+  }
+  .record-btn.recording {
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  .timer {
+    margin-left: 15px;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .recording-status {
+    margin-left: 15px;
+    color: #dc3545;
+    font-weight: bold;
+  }
+  .audio-preview {
+    width: 100%;
+    margin: 15px 0;
+    display: none;
+  }
+  .progress-indicator {
+    margin-bottom: 20px;
+  }
+  .image-container {
+    max-width: 100%;
+    margin: 15px 0;
+  }
+  .image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+  }
+  .instruction-text {
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+  .question-text {
+    margin-bottom: 15px;
+  }
+  .example-answer {
+    margin-top: 10px;
+    font-style: italic;
+    color: #666;
+  }
+  .time-limit {
+    color: #dc3545;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  .result-container {
+    display: none;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container mt-4">
+  <h1 class="text-center mb-4">Tes Kemampuan Berbicara (Speaking)</h1>
+
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header bg-warning text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <h2 class="h4 mb-0">Soal Tes</h2>
+            <span id="question-progress">1/{{ questions|length }}</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill"></i> Rekam suara Anda sesuai
+            instruksi pada setiap soal. Tekan tombol merah untuk mulai/berhenti
+            merekam.
+          </div>
+
+          <div class="progress progress-indicator">
+            <div
+              class="progress-bar bg-warning"
+              role="progressbar"
+              style="width: 0%"
+            ></div>
+          </div>
+
+          <form id="speaking-test-form">
+            {% for question in questions %}
+            <div
+              class="question-container {% if loop.first %}active{% endif %}"
+              data-question-id="{{ question.id }}"
+            >
+              <div class="instruction-text">{{ question.instruction }}</div>
+
+              {% if question.type == 'pronunciation' %}
+              <div class="question-text">
+                <div class="alert alert-light">"{{ question.text }}"</div>
+              </div>
+              {% elif question.type == 'question_response' %}
+              <div class="question-text">
+                <h4 class="h5">{{ question.question }}</h4>
+                <div class="example-answer">
+                  <small>Contoh: {{ question.example_answer }}</small>
+                </div>
+              </div>
+              {% elif question.type == 'describe_image' %}
+              <div class="question-text">
+                <div class="image-container">
+                  <img
+                    src="{{ question.image_url }}"
+                    alt="Gambar untuk dideskripsikan"
+                  />
+                </div>
+                {% if question.time_limit %}
+                <div class="time-limit">
+                  Waktu: {{ question.time_limit }} detik
+                </div>
+                {% endif %}
+              </div>
+              {% elif question.type == 'express_opinion' %}
+              <div class="question-text">
+                <h4 class="h5">{{ question.topic }}</h4>
+                {% if question.time_limit %}
+                <div class="time-limit">
+                  Waktu: {{ question.time_limit }} detik
+                </div>
+                {% endif %}
+              </div>
+              {% endif %}
+
+              <div class="recording-controls">
+                <div class="record-btn" data-question-id="{{ question.id }}">
+                  <i class="bi bi-mic-fill"></i>
+                </div>
+                <div class="timer" id="timer-{{ question.id }}">00:00</div>
+                <div
+                  class="recording-status"
+                  id="status-{{ question.id }}"
+                ></div>
+              </div>
+
+              <audio
+                class="audio-preview"
+                id="audio-preview-{{ question.id }}"
+                controls
+              ></audio>
+
+              <input
+                type="hidden"
+                name="{{ question.id }}_audio"
+                id="audio-data-{{ question.id }}"
+              />
+            </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-between mt-4">
+              <button
+                type="button"
+                id="prev-btn"
+                class="btn btn-secondary"
+                disabled
+              >
+                Sebelumnya
+              </button>
+              <button type="button" id="next-btn" class="btn btn-warning">
+                Selanjutnya
+              </button>
+              <button
+                type="submit"
+                id="submit-btn"
+                class="btn btn-primary"
+                style="display: none"
+              >
+                Selesai
+              </button>
+            </div>
+          </form>
+
+          <div class="result-container mt-4">
+            <div class="alert alert-success">
+              <h4>Hasil Tes Speaking</h4>
+              <p><strong>Skor:</strong> <span id="result-score"></span>%</p>
+              <p><strong>Level:</strong> <span id="result-level"></span></p>
+              <p>
+                <strong>Feedback:</strong> <span id="result-feedback"></span>
+              </p>
+            </div>
+
+            <div id="result-details" class="mt-3">
+              <h5>Detail Penilaian:</h5>
+              <ul class="list-group">
+                <li
+                  class="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  Pengucapan
+                  <span
+                    class="badge bg-primary rounded-pill"
+                    id="pronunciation-score"
+                  ></span>
+                </li>
+                <li
+                  class="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  Kelancaran
+                  <span
+                    class="badge bg-primary rounded-pill"
+                    id="fluency-score"
+                  ></span>
+                </li>
+                <li
+                  class="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  Konten
+                  <span
+                    class="badge bg-primary rounded-pill"
+                    id="content-score"
+                  ></span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="text-center mt-3">
+              <a href="{{ url_for('evaluation') }}" class="btn btn-primary"
+                >Kembali ke Halaman Evaluasi</a
+              >
+              <a href="{{ url_for('progress_report') }}" class="btn btn-info"
+                >Lihat Laporan Lengkap</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("speaking-test-form");
+    const questions = document.querySelectorAll(".question-container");
+    const progressBar = document.querySelector(".progress-bar");
+    const questionProgress = document.getElementById("question-progress");
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const submitBtn = document.getElementById("submit-btn");
+    const resultContainer = document.querySelector(".result-container");
+    const recordButtons = document.querySelectorAll(".record-btn");
+
+    let currentQuestionIndex = 0;
+    const totalQuestions = questions.length;
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+    let timerInterval;
+    let startTime;
+    let currentQuestionId;
+
+    // Fungsi untuk menampilkan soal aktif
+    function showQuestion(index) {
+      // Stop recording if active
+      if (isRecording) {
+        stopRecording();
+      }
+
+      questions.forEach((q) => q.classList.remove("active"));
+      questions[index].classList.add("active");
+
+      // Update progress
+      const progressPercentage = ((index + 1) / totalQuestions) * 100;
+      progressBar.style.width = progressPercentage + "%";
+      questionProgress.textContent = index + 1 + "/" + totalQuestions;
+
+      // Update tombol navigasi
+      prevBtn.disabled = index === 0;
+
+      if (index === totalQuestions - 1) {
+        nextBtn.style.display = "none";
+        submitBtn.style.display = "block";
+      } else {
+        nextBtn.style.display = "block";
+        submitBtn.style.display = "none";
+      }
+    }
+
+    // Fungsi untuk format waktu
+    function formatTime(ms) {
+      const seconds = Math.floor((ms / 1000) % 60);
+      const minutes = Math.floor((ms / 1000 / 60) % 60);
+      return `${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    // Fungsi untuk update timer
+    function updateTimer() {
+      const elapsed = Date.now() - startTime;
+      const timerElement = document.getElementById(
+        `timer-${currentQuestionId}`
+      );
+      timerElement.textContent = formatTime(elapsed);
+    }
+
+    // Fungsi untuk memulai rekaman
+    function startRecording(questionId) {
+      currentQuestionId = questionId;
+
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          const statusElement = document.getElementById(`status-${questionId}`);
+          const timerElement = document.getElementById(`timer-${questionId}`);
+          const audioPreview = document.getElementById(
+            `audio-preview-${questionId}`
+          );
+
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.addEventListener("dataavailable", (event) => {
+            audioChunks.push(event.data);
+          });
+
+          mediaRecorder.addEventListener("stop", () => {
+            const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            audioPreview.src = audioUrl;
+            audioPreview.style.display = "block";
+
+            // Convert to base64 for submission
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = function () {
+              const base64data = reader.result;
+              document.getElementById(`audio-data-${questionId}`).value =
+                base64data;
+            };
+          });
+
+          mediaRecorder.start();
+          isRecording = true;
+
+          // Update UI
+          statusElement.textContent = "Merekam...";
+
+          // Start timer
+          startTime = Date.now();
+          timerElement.textContent = "00:00";
+          timerInterval = setInterval(updateTimer, 1000);
+        })
+        .catch((error) => {
+          console.error("Error accessing microphone:", error);
+          alert(
+            "Terjadi kesalahan saat mengakses mikrofon. Pastikan izin mikrofon diberikan."
+          );
+        });
+    }
+
+    // Fungsi untuk menghentikan rekaman
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+
+        // Update UI
+        const statusElement = document.getElementById(
+          `status-${currentQuestionId}`
+        );
+        statusElement.textContent = "Rekaman selesai";
+
+        // Stop timer
+        clearInterval(timerInterval);
+      }
+    }
+
+    // Event listener untuk tombol rekam
+    recordButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const questionId = this.getAttribute("data-question-id");
+
+        if (!isRecording) {
+          // Start recording
+          this.classList.add("recording");
+          startRecording(questionId);
+        } else {
+          // Stop recording
+          this.classList.remove("recording");
+          stopRecording();
+        }
+      });
+    });
+
+    // Event listener untuk tombol navigasi
+    prevBtn.addEventListener("click", function () {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        showQuestion(currentQuestionIndex);
+      }
+    });
+
+    nextBtn.addEventListener("click", function () {
+      if (currentQuestionIndex < totalQuestions - 1) {
+        currentQuestionIndex++;
+        showQuestion(currentQuestionIndex);
+      }
+    });
+
+    // Event listener untuk submit form
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      // Cek semua soal sudah dijawab
+      let allAnswered = true;
+      for (const question of questions) {
+        const questionId = question.getAttribute("data-question-id");
+        const audioData = document.getElementById(
+          `audio-data-${questionId}`
+        ).value;
+
+        if (!audioData) {
+          allAnswered = false;
+          break;
+        }
+      }
+
+      if (!allAnswered) {
+        if (!confirm("Beberapa soal belum Anda jawab. Lanjutkan mengirim?")) {
+          return;
+        }
+      }
+
+      // Get current question data
+      const activeQuestion = questions[currentQuestionIndex];
+      const questionId = activeQuestion.getAttribute("data-question-id");
+      const audioData = document.getElementById(
+        `audio-data-${questionId}`
+      ).value;
+
+      // Kirim jawaban ke server
+      fetch('{{ url_for("speaking_test") }}', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          audio: audioData,
+          test_id: questionId,
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Tampilkan hasil
+          document.getElementById("result-score").textContent =
+            data.score.toFixed(1);
+          document.getElementById("result-level").textContent =
+            data.level === "basic"
+              ? "Dasar"
+              : data.level === "intermediate"
+              ? "Menengah"
+              : "Lanjut";
+          document.getElementById("result-feedback").textContent =
+            data.feedback;
+
+          // Tampilkan detail
+          if (data.details) {
+            document.getElementById("pronunciation-score").textContent =
+              data.details.pronunciation.toFixed(1) + "%";
+            document.getElementById("fluency-score").textContent =
+              data.details.fluency.toFixed(1) + "%";
+            document.getElementById("content-score").textContent =
+              data.details.content.toFixed(1) + "%";
+          }
+
+          // Sembunyikan form dan tampilkan hasil
+          form.style.display = "none";
+          resultContainer.style.display = "block";
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          alert("Terjadi kesalahan saat mengirim jawaban. Silakan coba lagi.");
+        });
+    });
+
+    // Inisialisasi tampilan soal pertama
+    showQuestion(currentQuestionIndex);
+  });
+</script>
+{% endblock %}

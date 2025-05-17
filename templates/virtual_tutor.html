@@ -1,0 +1,804 @@
+{% extends "base.html" %} {% block title %}Tutor Virtual AI - Lab Bahasa{%
+endblock %} {% block extra_css %}
+<style>
+  .chat-container {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #f9f9f9;
+  }
+
+  .message {
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    border-radius: 15px;
+    max-width: 80%;
+    word-wrap: break-word;
+  }
+
+  .user-message {
+    background-color: #dcf8c6;
+    align-self: flex-end;
+    margin-left: auto;
+  }
+
+  .assistant-message {
+    background-color: #f1f0f0;
+    align-self: flex-start;
+  }
+
+  .writing-feedback {
+    background-color: #e3f2fd;
+    border-left: 4px solid #1976d2;
+    padding: 15px;
+    margin-top: 15px;
+    border-radius: 4px;
+  }
+
+  .voice-record-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #f44336;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .voice-record-button:hover {
+    background-color: #d32f2f;
+  }
+
+  .voice-record-button.recording {
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .language-level-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    margin-right: 5px;
+  }
+
+  .exercise-tab {
+    cursor: pointer;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+  }
+
+  .exercise-tab:hover {
+    background-color: #f5f5f5;
+  }
+
+  .exercise-tab.active {
+    background-color: #e3f2fd;
+    border-left: 4px solid #1976d2;
+  }
+
+  .topic-card {
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .topic-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <h2>Tutor Virtual AI</h2>
+    <p class="lead">
+      Latih kemampuan berbicara dan menulis Anda dengan tutor AI yang dapat
+      memberikan umpan balik langsung.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Panel Kiri - Pengaturan -->
+  <div class="col-md-3">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Pengaturan</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="language-select" class="form-label">Pilih Bahasa:</label>
+          <select id="language-select" class="form-select">
+            <option value="id" selected>Indonesia</option>
+            <option value="en">English</option>
+            <option value="jp">日本語</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="level-select" class="form-label">Level Bahasa:</label>
+          <select id="level-select" class="form-select">
+            <option value="beginner" selected>Pemula</option>
+            <option value="intermediate">Menengah</option>
+            <option value="advanced">Lanjutan</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Jenis Latihan</h5>
+      </div>
+      <div class="card-body">
+        <div class="exercise-tab active" data-exercise="free_conversation">
+          <i class="bi bi-chat-dots"></i> Percakapan Bebas
+        </div>
+        <div class="exercise-tab" data-exercise="writing_exercise">
+          <i class="bi bi-pencil"></i> Latihan Menulis
+        </div>
+        <div class="exercise-tab" data-exercise="speaking_practice">
+          <i class="bi bi-mic"></i> Latihan Berbicara
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          Topik <span id="topic-type-label">Percakapan</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        <div id="topic-container">
+          <!-- Topik akan diisi secara dinamis -->
+          <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel Tengah - Chat dan Input -->
+  <div class="col-md-6">
+    <div class="card mb-3">
+      <div
+        class="card-header d-flex justify-content-between align-items-center"
+      >
+        <h5 class="mb-0">
+          <span id="chat-title">Percakapan Bebas</span>
+          <span
+            class="language-level-badge"
+            id="language-badge"
+            style="background-color: #28a745; color: white"
+            >ID - Pemula</span
+          >
+        </h5>
+        <button id="reset-chat" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-clockwise"></i> Reset
+        </button>
+      </div>
+      <div class="card-body">
+        <div id="chat-container" class="chat-container mb-3">
+          <!-- Pesan akan diisi secara dinamis -->
+          <div class="message assistant-message">
+            Halo! Saya tutor virtual Anda. Apa yang ingin Anda pelajari hari
+            ini?
+          </div>
+        </div>
+
+        <div
+          id="feedback-container"
+          class="writing-feedback mb-3"
+          style="display: none"
+        >
+          <!-- Umpan balik akan diisi secara dinamis -->
+        </div>
+
+        <div class="input-group mb-3">
+          <textarea
+            id="user-input"
+            class="form-control"
+            placeholder="Ketik pesan Anda di sini..."
+            rows="2"
+          ></textarea>
+          <button
+            id="voice-toggle"
+            class="btn btn-outline-secondary voice-record-button"
+          >
+            <i class="bi bi-mic"></i>
+          </button>
+          <button id="send-button" class="btn btn-primary">
+            <i class="bi bi-send"></i> Kirim
+          </button>
+        </div>
+
+        <div
+          id="recording-status"
+          class="text-center mb-2"
+          style="display: none"
+        >
+          <span class="badge bg-danger">Merekam...</span>
+          <span id="recording-time">00:00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel Kanan - Petunjuk dan Bantuan -->
+  <div class="col-md-3">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Petunjuk</h5>
+      </div>
+      <div class="card-body">
+        <div id="instructions-container">
+          <!-- Petunjuk akan diisi secara dinamis -->
+          <p><strong>Percakapan Bebas</strong></p>
+          <ul>
+            <li>Mulai percakapan dengan tutor virtual</li>
+            <li>Tutor akan menyesuaikan dengan level bahasa Anda</li>
+            <li>Anda akan mendapat koreksi ringan saat membuat kesalahan</li>
+            <li>Pilih topik untuk memulai diskusi</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Tips</h5>
+      </div>
+      <div class="card-body">
+        <div id="tips-container">
+          <!-- Tips akan diisi secara dinamis -->
+          <p>
+            <i class="bi bi-lightbulb text-warning"></i>
+            <strong>Tip:</strong> Gunakan topik yang disarankan untuk memulai
+            percakapan yang lebih terarah.
+          </p>
+          <p>
+            <i class="bi bi-lightbulb text-warning"></i>
+            <strong>Tip:</strong> Jika mengalami kesulitan, Anda dapat meminta
+            tutor untuk memberikan contoh atau penjelasan lebih lanjut.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Elemen-elemen UI
+    const languageSelect = document.getElementById("language-select");
+    const levelSelect = document.getElementById("level-select");
+    const exerciseTabs = document.querySelectorAll(".exercise-tab");
+    const chatTitle = document.getElementById("chat-title");
+    const languageBadge = document.getElementById("language-badge");
+    const topicContainer = document.getElementById("topic-container");
+    const topicTypeLabel = document.getElementById("topic-type-label");
+    const chatContainer = document.getElementById("chat-container");
+    const userInput = document.getElementById("user-input");
+    const sendButton = document.getElementById("send-button");
+    const resetButton = document.getElementById("reset-chat");
+    const voiceToggle = document.getElementById("voice-toggle");
+    const recordingStatus = document.getElementById("recording-status");
+    const recordingTime = document.getElementById("recording-time");
+    const feedbackContainer = document.getElementById("feedback-container");
+    const instructionsContainer = document.getElementById(
+      "instructions-container"
+    );
+    const tipsContainer = document.getElementById("tips-container");
+
+    // State
+    let currentLanguage = "id";
+    let currentLevel = "beginner";
+    let currentExercise = "free_conversation";
+    let isRecording = false;
+    let recordingInterval = null;
+    let recordingSeconds = 0;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let conversationHistory = [];
+
+    // Fungsi untuk mengupdate badge bahasa
+    function updateLanguageBadge() {
+      const languageCode = currentLanguage.toUpperCase();
+      const levelMap = {
+        beginner: "Pemula",
+        intermediate: "Menengah",
+        advanced: "Lanjutan",
+      };
+
+      const levelDisplay = levelMap[currentLevel];
+      languageBadge.textContent = `${languageCode} - ${levelDisplay}`;
+
+      // Ubah warna badge berdasarkan level
+      if (currentLevel === "beginner") {
+        languageBadge.style.backgroundColor = "#28a745";
+      } else if (currentLevel === "intermediate") {
+        languageBadge.style.backgroundColor = "#fd7e14";
+      } else {
+        languageBadge.style.backgroundColor = "#dc3545";
+      }
+    }
+
+    // Fungsi untuk mengambil topik percakapan
+    function fetchTopics() {
+      fetch(
+        `/api/virtual-tutor/topics?language=${currentLanguage}&level=${currentLevel}&exercise_type=${currentExercise}`
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          topicContainer.innerHTML = "";
+
+          if (data.length === 0) {
+            topicContainer.innerHTML =
+              '<p class="text-center">Tidak ada topik tersedia</p>';
+            return;
+          }
+
+          data.forEach((topic) => {
+            const topicElement = document.createElement("div");
+            topicElement.classList.add("card", "mb-2", "topic-card");
+            topicElement.innerHTML = `
+              <div class="card-body py-2 px-3">
+                <small>${topic}</small>
+              </div>
+            `;
+            topicElement.addEventListener("click", () => {
+              userInput.value = topic;
+              sendMessage();
+            });
+            topicContainer.appendChild(topicElement);
+          });
+        })
+        .catch((error) => {
+          console.error("Error fetching topics:", error);
+          topicContainer.innerHTML =
+            '<p class="text-danger">Gagal memuat topik</p>';
+        });
+    }
+
+    // Fungsi untuk mengupdate petunjuk
+    function updateInstructions() {
+      let instructions = "";
+      let tips = "";
+
+      if (currentExercise === "free_conversation") {
+        instructions = `
+          <p><strong>Percakapan Bebas</strong></p>
+          <ul>
+            <li>Mulai percakapan dengan tutor virtual</li>
+            <li>Tutor akan menyesuaikan dengan level bahasa Anda</li>
+            <li>Anda akan mendapat koreksi ringan saat membuat kesalahan</li>
+            <li>Pilih topik untuk memulai diskusi</li>
+          </ul>
+        `;
+
+        tips = `
+          <p><i class="bi bi-lightbulb text-warning"></i> <strong>Tip:</strong> Gunakan topik yang disarankan untuk memulai percakapan yang lebih terarah.</p>
+          <p><i class="bi bi-lightbulb text-warning"></i> <strong>Tip:</strong> Jika mengalami kesulitan, Anda dapat meminta tutor untuk memberikan contoh atau penjelasan lebih lanjut.</p>
+        `;
+
+        chatTitle.textContent = "Percakapan Bebas";
+        topicTypeLabel.textContent = "Percakapan";
+        feedbackContainer.style.display = "none";
+      } else if (currentExercise === "writing_exercise") {
+        instructions = `
+          <p><strong>Latihan Menulis</strong></p>
+          <ul>
+            <li>Pilih salah satu topik dari daftar</li>
+            <li>Tulis minimal 3-5 kalimat dalam bahasa target</li>
+            <li>Kirimkan tulisan Anda untuk mendapatkan umpan balik</li>
+            <li>Tutor akan memberikan koreksi dan saran perbaikan</li>
+          </ul>
+        `;
+
+        tips = `
+          <p><i class="bi bi-lightbulb text-warning"></i> <strong>Tip:</strong> Tulislah minimal 3-5 kalimat untuk mendapatkan umpan balik yang lebih baik.</p>
+          <p><i class="bi bi-lightbulb text-warning"></i> <strong>Tip:</strong> Fokus pada satu aspek yang ingin Anda tingkatkan (misalnya: kosakata, tata bahasa, atau struktur kalimat).</p>
+        `;
+
+        chatTitle.textContent = "Latihan Menulis";
+        topicTypeLabel.textContent = "Menulis";
+        feedbackContainer.style.display = "none";
+      } else if (currentExercise === "speaking_practice") {
+        instructions = `
+          <p><strong>Latihan Berbicara</strong></p>
+          <ul>
+            <li>Pilih salah satu topik dari daftar</li>
+            <li>Klik tombol mikrofon untuk mulai merekam</li>
+            <li>Bicaralah dalam bahasa target selama 30-60 detik</li>
+            <li>Klik tombol mikrofon lagi untuk mengakhiri rekaman</li>
+            <li>Tutor akan memberikan umpan balik tentang pengucapan Anda</li>
+          </ul>
+        `;
+
+        tips = `
+          <p><i class="bi bi-lightbulb text-warning"></i> <strong>Tip:</strong> Berbicara dengan jelas dan natural. Jangan terburu-buru.</p>
+          <p><i class="bi bi-lightbulb text-warning"></i> <strong>Tip:</strong> Rekam di lingkungan yang tenang untuk hasil yang lebih baik.</p>
+          <p><i class="bi bi-lightbulb text-warning"></i> <strong>Tip:</strong> Praktikkan pengucapan kata-kata sulit beberapa kali.</p>
+        `;
+
+        chatTitle.textContent = "Latihan Berbicara";
+        topicTypeLabel.textContent = "Berbicara";
+        feedbackContainer.style.display = "none";
+      }
+
+      instructionsContainer.innerHTML = instructions;
+      tipsContainer.innerHTML = tips;
+    }
+
+    // Event handler untuk dropdown bahasa
+    languageSelect.addEventListener("change", function () {
+      currentLanguage = this.value;
+      updateLanguageBadge();
+      fetchTopics();
+
+      // Tambahkan pesan sistem
+      const systemMessage = {
+        role: "system",
+        content: `Bahasa telah diubah ke ${
+          this.options[this.selectedIndex].text
+        }.`,
+      };
+
+      // Reset conversation history
+      conversationHistory = [];
+
+      // Update UI
+      chatContainer.innerHTML = "";
+
+      let welcomeMessage = "";
+      if (currentLanguage === "id") {
+        welcomeMessage =
+          "Halo! Saya tutor virtual Anda. Apa yang ingin Anda pelajari hari ini?";
+      } else if (currentLanguage === "en") {
+        welcomeMessage =
+          "Hello! I am your virtual tutor. What would you like to learn today?";
+      } else if (currentLanguage === "jp") {
+        welcomeMessage =
+          "こんにちは！私はあなたの仮想チューターです。今日は何を学びたいですか？";
+      }
+
+      addMessageToChat("assistant", welcomeMessage);
+    });
+
+    // Event handler untuk dropdown level
+    levelSelect.addEventListener("change", function () {
+      currentLevel = this.value;
+      updateLanguageBadge();
+      fetchTopics();
+    });
+
+    // Event handler untuk tab jenis latihan
+    exerciseTabs.forEach((tab) => {
+      tab.addEventListener("click", function () {
+        // Update active tab
+        exerciseTabs.forEach((t) => t.classList.remove("active"));
+        this.classList.add("active");
+
+        // Update current exercise
+        currentExercise = this.dataset.exercise;
+
+        // Update UI
+        updateInstructions();
+        fetchTopics();
+      });
+    });
+
+    // Fungsi untuk menambahkan pesan ke chat
+    function addMessageToChat(role, content) {
+      const messageElement = document.createElement("div");
+      messageElement.classList.add("message");
+
+      if (role === "user") {
+        messageElement.classList.add("user-message");
+      } else {
+        messageElement.classList.add("assistant-message");
+      }
+
+      // Format pesan dengan new lines
+      const formattedContent = content.replace(/\n/g, "<br>");
+      messageElement.innerHTML = formattedContent;
+
+      chatContainer.appendChild(messageElement);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      // Tambahkan ke history percakapan
+      conversationHistory.push({
+        role: role,
+        content: content,
+      });
+    }
+
+    // Fungsi untuk menampilkan analisis writing
+    function displayWritingFeedback(analysis) {
+      feedbackContainer.innerHTML = analysis.replace(/\n/g, "<br>");
+      feedbackContainer.style.display = "block";
+    }
+
+    // Fungsi untuk mengirim pesan
+    function sendMessage() {
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      // Tambahkan pesan pengguna ke chat
+      addMessageToChat("user", message);
+
+      // Clear input
+      userInput.value = "";
+
+      // Tampilkan indikator loading
+      const loadingElement = document.createElement("div");
+      loadingElement.classList.add("message", "assistant-message");
+      loadingElement.innerHTML =
+        '<div class="spinner-border spinner-border-sm text-secondary" role="status"><span class="visually-hidden">Loading...</span></div>';
+      chatContainer.appendChild(loadingElement);
+
+      // Kirim ke API
+      fetch("/api/virtual-tutor/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message,
+          language: currentLanguage,
+          level: currentLevel,
+          exercise_type: currentExercise,
+          history: conversationHistory.slice(-10), // Kirim 10 pesan terakhir saja
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Hapus indikator loading
+          chatContainer.removeChild(loadingElement);
+
+          if (data.error) {
+            addMessageToChat("assistant", `Error: ${data.response}`);
+            return;
+          }
+
+          // Tambahkan respons ke chat
+          addMessageToChat("assistant", data.response);
+
+          // Jika ini adalah latihan menulis, tampilkan analisis
+          if (currentExercise === "writing_exercise" && data.analysis) {
+            displayWritingFeedback(data.analysis);
+          }
+        })
+        .catch((error) => {
+          // Hapus indikator loading
+          chatContainer.removeChild(loadingElement);
+
+          console.error("Error sending message:", error);
+          addMessageToChat(
+            "assistant",
+            "Maaf, terjadi kesalahan saat memproses pesan Anda. Silakan coba lagi."
+          );
+        });
+    }
+
+    // Event handler untuk tombol kirim
+    sendButton.addEventListener("click", sendMessage);
+
+    // Event handler untuk input (Enter key)
+    userInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Event handler untuk tombol reset
+    resetButton.addEventListener("click", function () {
+      // Reset conversation history
+      conversationHistory = [];
+
+      // Reset UI
+      chatContainer.innerHTML = "";
+      feedbackContainer.style.display = "none";
+
+      // Tambahkan pesan pembuka
+      let welcomeMessage = "";
+      if (currentLanguage === "id") {
+        welcomeMessage =
+          "Halo! Saya tutor virtual Anda. Apa yang ingin Anda pelajari hari ini?";
+      } else if (currentLanguage === "en") {
+        welcomeMessage =
+          "Hello! I am your virtual tutor. What would you like to learn today?";
+      } else if (currentLanguage === "jp") {
+        welcomeMessage =
+          "こんにちは！私はあなたの仮想チューターです。今日は何を学びたいですか？";
+      }
+
+      addMessageToChat("assistant", welcomeMessage);
+    });
+
+    // Fungsi untuk memformat waktu rekaman
+    function formatRecordingTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${minutes
+        .toString()
+        .padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+    }
+
+    // Fungsi untuk memulai/menghentikan rekaman
+    function toggleRecording() {
+      if (!isRecording) {
+        // Mulai merekam
+        navigator.mediaDevices
+          .getUserMedia({ audio: true })
+          .then((stream) => {
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.addEventListener("dataavailable", (event) => {
+              audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener("stop", () => {
+              const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
+              // Convert to base64
+              const reader = new FileReader();
+              reader.readAsDataURL(audioBlob);
+              reader.onloadend = function () {
+                const base64Audio = reader.result;
+
+                // Tambahkan pesan pengguna ke chat
+                addMessageToChat("user", "[Audio Recording]");
+
+                // Tampilkan indikator loading
+                const loadingElement = document.createElement("div");
+                loadingElement.classList.add("message", "assistant-message");
+                loadingElement.innerHTML =
+                  '<div class="spinner-border spinner-border-sm text-secondary" role="status"><span class="visually-hidden">Loading...</span></div>';
+                chatContainer.appendChild(loadingElement);
+
+                // Kirim rekaman ke server
+                fetch("/api/virtual-tutor/speech", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    audio: base64Audio,
+                    language: currentLanguage,
+                    level: currentLevel,
+                  }),
+                })
+                  .then((response) => response.json())
+                  .then((data) => {
+                    // Hapus indikator loading
+                    chatContainer.removeChild(loadingElement);
+
+                    if (data.error) {
+                      addMessageToChat("assistant", `Error: ${data.feedback}`);
+                      return;
+                    }
+
+                    // Tampilkan feedback
+                    feedbackContainer.innerHTML = data.feedback.replace(
+                      /\n/g,
+                      "<br>"
+                    );
+                    feedbackContainer.style.display = "block";
+
+                    // Tambahkan respons ke chat
+                    if (data.transcription) {
+                      addMessageToChat(
+                        "assistant",
+                        `Saya mendengar: "${data.transcription}"\n\n${data.feedback}`
+                      );
+                    } else {
+                      addMessageToChat("assistant", data.feedback);
+                    }
+                  })
+                  .catch((error) => {
+                    // Hapus indikator loading
+                    chatContainer.removeChild(loadingElement);
+
+                    console.error("Error processing speech:", error);
+                    addMessageToChat(
+                      "assistant",
+                      "Maaf, terjadi kesalahan saat memproses rekaman Anda. Silakan coba lagi."
+                    );
+                  });
+              };
+
+              // Stop all tracks
+              stream.getTracks().forEach((track) => track.stop());
+            });
+
+            mediaRecorder.start();
+
+            // Update UI
+            isRecording = true;
+            voiceToggle.classList.add("recording");
+            recordingStatus.style.display = "block";
+            recordingSeconds = 0;
+            recordingTime.textContent = formatRecordingTime(recordingSeconds);
+
+            // Start timer
+            recordingInterval = setInterval(() => {
+              recordingSeconds++;
+              recordingTime.textContent = formatRecordingTime(recordingSeconds);
+
+              // Auto-stop setelah 2 menit
+              if (recordingSeconds >= 120) {
+                toggleRecording();
+              }
+            }, 1000);
+          })
+          .catch((error) => {
+            console.error("Error accessing microphone:", error);
+            alert(
+              "Tidak dapat mengakses mikrofon. Pastikan browser Anda mendukung akses mikrofon dan Anda telah memberikan izin."
+            );
+          });
+      } else {
+        // Hentikan rekaman
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+        }
+
+        // Update UI
+        isRecording = false;
+        voiceToggle.classList.remove("recording");
+        recordingStatus.style.display = "none";
+
+        // Stop timer
+        clearInterval(recordingInterval);
+      }
+    }
+
+    // Event handler untuk tombol rekam
+    voiceToggle.addEventListener("click", function () {
+      if (currentExercise !== "speaking_practice") {
+        alert(
+          "Rekaman suara hanya tersedia untuk Latihan Berbicara. Silakan pilih tab Latihan Berbicara terlebih dahulu."
+        );
+        return;
+      }
+
+      toggleRecording();
+    });
+
+    // Inisialisasi
+    updateLanguageBadge();
+    updateInstructions();
+    fetchTopics();
+  });
+</script>
+{% endblock %}

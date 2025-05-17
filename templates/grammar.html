@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Koreksi Tata Bahasa - Lab Bahasa AI{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>Koreksi Tata Bahasa</h1>
+        <p class="lead">Masukkan teks Anda untuk dikoreksi tata bahasa secara otomatis menggunakan AI.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="POST" action="/grammar">
+                    <div class="mb-3">
+                        <label for="text" class="form-label">Teks</label>
+                        <textarea class="form-control" id="text" name="text" rows="6" required>{{ original_text|default('', true) }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="language" class="form-label">Bahasa</label>
+                        <select class="form-select" id="language" name="language">
+                            <option value="id" {% if language == 'id' or language is not defined %}selected{% endif %}>Bahasa Indonesia</option>
+                            <option value="en" {% if language == 'en' %}selected{% endif %}>Bahasa Inggris</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Koreksi Teks</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if corrected_text is defined %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h3>Hasil Koreksi</h3>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                Teks yang Dikoreksi
+            </div>
+            <div class="card-body">
+                <p id="corrected-text" class="mb-1">{{ corrected_text }}</p>
+                <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyToClipboard('corrected-text')">Salin Teks</button>
+            </div>
+        </div>
+        
+        {% if explanations %}
+        <div class="card mb-4">
+            <div class="card-header">
+                Penjelasan Koreksi
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Teks Asli</th>
+                            <th>Saran</th>
+                            <th>Aturan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for correction in explanations %}
+                        <tr>
+                            <td>{{ correction.text }}</td>
+                            <td>{{ correction.suggestion }}</td>
+                            <td>{{ correction.rule }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if not corrected_text is defined %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                Contoh Teks untuk Dikoreksi
+            </div>
+            <div class="card-body">
+                <h5>Bahasa Indonesia</h5>
+                <ul>
+                    <li>Saya pergi ke rumah nya kemarin.</li>
+                    <li>Dia tidak bisa di terima di sekolah itu.</li>
+                    <li>Belajar lah dengan rajin supaya sukses.</li>
+                </ul>
+                
+                <h5>Bahasa Inggris</h5>
+                <ul>
+                    <li>i am going to the store today.</li>
+                    <li>The children is playing in the garden.</li>
+                    <li>She have three books on her desk.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyToClipboard(elementId) {
+    var element = document.getElementById(elementId);
+    var text = element.innerText;
+    
+    navigator.clipboard.writeText(text).then(function() {
+        alert('Teks berhasil disalin ke clipboard!');
+    }, function() {
+        alert('Gagal menyalin teks');
+    });
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,15 @@
+flask==2.3.3
+transformers==4.34.0
+torch==2.1.0
+spacy==3.7.1
+SpeechRecognition==3.10.0
+pyaudio==0.2.13
+python-dotenv==1.0.0
+gunicorn==21.2.0
+jiwer==3.0.3
+numpy==1.25.2
+sentencepiece  # Diperlukan untuk T5Tokenizer
+ffmpeg-python==0.2.0  # Diperlukan untuk konversi format audio
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
+# Model bahasa Indonesia tidak tersedia tanpa login, install menggunakan perintah berikut:
+# python -m spacy download id_core_news_sm 

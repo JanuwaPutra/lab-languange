@@ -1,0 +1,302 @@
+{% extends "base.html" %} {% block title %}Adaptive Learning - Lab Bahasa AI{%
+endblock %} {% block content %}
+<div class="row mb-4">
+  <div class="col-md-12">
+    <h1>Adaptive Learning</h1>
+    <p class="lead">
+      Berlatih dengan soal yang disesuaikan secara otomatis dengan level
+      kemampuan Anda.
+    </p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div
+        class="card-header d-flex justify-content-between align-items-center"
+      >
+        <span>Soal Bahasa</span>
+        <span class="badge bg-primary">Level: {{ user_level }}</span>
+      </div>
+      <div class="card-body">
+        <div id="question-container">
+          {% if questions %} {% for question in questions %}
+          <div
+            class="question-item mb-4 {% if not loop.first %}d-none{% endif %}"
+            data-question-id="{{ question.id }}"
+          >
+            <h5 class="mb-3">{{ loop.index }}. {{ question.text }}</h5>
+
+            <div class="options-container">
+              {% for option in question.options %}
+              <div class="form-check mb-2">
+                <input
+                  class="form-check-input"
+                  type="radio"
+                  name="question-{{ question.id }}"
+                  id="option-{{ question.id }}-{{ loop.index }}"
+                  value="{{ option }}"
+                />
+                <label
+                  class="form-check-label"
+                  for="option-{{ question.id }}-{{ loop.index }}"
+                >
+                  {{ option }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+
+            <div class="feedback-container mt-3 d-none">
+              <div class="alert" role="alert">
+                <!-- Feedback will be inserted here via JavaScript -->
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+              {% if not loop.first %}
+              <button class="btn btn-secondary btn-prev">Sebelumnya</button>
+              {% else %}
+              <div></div>
+              {% endif %}
+
+              <button class="btn btn-primary btn-check">Periksa Jawaban</button>
+
+              {% if not loop.last %}
+              <button class="btn btn-secondary btn-next" disabled>
+                Selanjutnya
+              </button>
+              {% else %}
+              <button class="btn btn-success btn-finish" disabled>
+                Selesai
+              </button>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %} {% else %}
+          <p>Tidak ada soal tersedia saat ini.</p>
+          {% endif %}
+        </div>
+
+        <div id="result-container" class="d-none">
+          <h4>Hasil Latihan</h4>
+          <div class="alert alert-info">
+            <p>Anda telah menyelesaikan semua soal dalam sesi ini.</p>
+            <p>
+              Level kemampuan Anda:
+              <span id="final-level">{{ user_level }}</span>
+            </p>
+            <p>
+              Jawaban benar: <span id="correct-count">0</span> dari
+              <span id="total-count">{{ questions|length }}</span>
+            </p>
+          </div>
+          <button id="retry-button" class="btn btn-primary">
+            Coba Lagi dengan Soal Baru
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-header">Panduan Tingkat Kesulitan</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <h6>Level 1 - Pemula</h6>
+          <p>
+            Soal-soal dasar terkait kosakata, tata bahasa sederhana, dan
+            struktur kalimat dasar.
+          </p>
+        </div>
+        <div class="mb-3">
+          <h6>Level 2 - Menengah</h6>
+          <p>
+            Soal-soal yang lebih kompleks mencakup idiom, tata bahasa tingkat
+            menengah, dan struktur kalimat yang lebih beragam.
+          </p>
+        </div>
+        <div>
+          <h6>Level 3 - Mahir</h6>
+          <p>
+            Soal-soal tingkat lanjut mencakup majas, nuansa bahasa, tata bahasa
+            kompleks, dan aturan penulisan formal.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header">Kemajuan Belajar</div>
+      <div class="card-body">
+        <p>
+          Tingkat kemampuan saat ini:
+          <span class="badge bg-primary">Level {{ user_level }}</span>
+        </p>
+        <div class="progress mb-3" style="height: 25px">
+          <div
+            class="progress-bar bg-success"
+            role="progressbar"
+            style="width: {{ (user_level / 3) * 100 }}%;"
+            aria-valuenow="{{ user_level }}"
+            aria-valuemin="1"
+            aria-valuemax="3"
+          >
+            {{ user_level }} / 3
+          </div>
+        </div>
+        <p class="small text-muted">
+          Sistem akan secara otomatis menyesuaikan tingkat kesulitan berdasarkan
+          jawaban Anda.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      // Data state
+      let currentQuestionIndex = 0;
+      let correctAnswers = 0;
+      let userLevel = {{ user_level }};
+
+      // Elements
+      const questionItems = document.querySelectorAll('.question-item');
+      const resultContainer = document.getElementById('result-container');
+      const questionContainer = document.getElementById('question-container');
+      const finalLevelEl = document.getElementById('final-level');
+      const correctCountEl = document.getElementById('correct-count');
+      const totalCountEl = document.getElementById('total-count');
+      const retryButton = document.getElementById('retry-button');
+
+      // Add event listeners to all check buttons
+      document.querySelectorAll('.btn-check').forEach(button => {
+          button.addEventListener('click', checkAnswer);
+      });
+
+      // Add event listeners to all next buttons
+      document.querySelectorAll('.btn-next').forEach(button => {
+          button.addEventListener('click', showNextQuestion);
+      });
+
+      // Add event listeners to all prev buttons
+      document.querySelectorAll('.btn-prev').forEach(button => {
+          button.addEventListener('click', showPrevQuestion);
+      });
+
+      // Add event listener to finish button
+      document.querySelectorAll('.btn-finish').forEach(button => {
+          button.addEventListener('click', showResults);
+      });
+
+      // Retry button
+      if (retryButton) {
+          retryButton.addEventListener('click', function() {
+              window.location.reload();
+          });
+      }
+
+      // Function to check the answer
+      function checkAnswer(event) {
+          const questionDiv = event.target.closest('.question-item');
+          const questionId = questionDiv.dataset.questionId;
+          const selectedOption = questionDiv.querySelector('input[name="question-' + questionId + '"]:checked');
+
+          if (!selectedOption) {
+              alert('Silakan pilih salah satu jawaban.');
+              return;
+          }
+
+          const answer = selectedOption.value;
+          const feedbackContainer = questionDiv.querySelector('.feedback-container');
+          const feedbackAlert = feedbackContainer.querySelector('.alert');
+          const nextButton = questionDiv.querySelector('.btn-next');
+          const finishButton = questionDiv.querySelector('.btn-finish');
+
+          // Send answer to server for evaluation
+          fetch('/learning', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                  'answer': answer,
+                  'question_id': questionId
+              })
+          })
+          .then(response => response.json())
+          .then(data => {
+              // Show feedback
+              feedbackContainer.classList.remove('d-none');
+
+              if (data.correct) {
+                  feedbackAlert.classList.add('alert-success');
+                  feedbackAlert.classList.remove('alert-danger');
+                  correctAnswers++;
+              } else {
+                  feedbackAlert.classList.add('alert-danger');
+                  feedbackAlert.classList.remove('alert-success');
+              }
+
+              feedbackAlert.innerHTML = data.feedback;
+
+              // Update user level if changed
+              if (data.new_level !== userLevel) {
+                  userLevel = data.new_level;
+                  document.querySelector('.progress-bar').style.width = ((userLevel / 3) * 100) + '%';
+                  document.querySelector('.progress-bar').textContent = userLevel + ' / 3';
+                  document.querySelectorAll('.badge.bg-primary').forEach(badge => {
+                      badge.textContent = 'Level: ' + userLevel;
+                  });
+              }
+
+              // Enable next/finish button
+              if (nextButton) nextButton.disabled = false;
+              if (finishButton) finishButton.disabled = false;
+
+              // Disable the check button and radio inputs
+              event.target.disabled = true;
+              questionDiv.querySelectorAll('input[type="radio"]').forEach(input => {
+                  input.disabled = true;
+              });
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              feedbackContainer.classList.remove('d-none');
+              feedbackAlert.classList.add('alert-danger');
+              feedbackAlert.textContent = 'Terjadi kesalahan saat memeriksa jawaban. Silakan coba lagi.';
+          });
+      }
+
+      // Function to show the next question
+      function showNextQuestion(event) {
+          const currentQuestionDiv = event.target.closest('.question-item');
+          currentQuestionDiv.classList.add('d-none');
+
+          currentQuestionIndex++;
+          questionItems[currentQuestionIndex].classList.remove('d-none');
+      }
+
+      // Function to show the previous question
+      function showPrevQuestion(event) {
+          const currentQuestionDiv = event.target.closest('.question-item');
+          currentQuestionDiv.classList.add('d-none');
+
+          currentQuestionIndex--;
+          questionItems[currentQuestionIndex].classList.remove('d-none');
+      }
+
+      // Function to show results
+      function showResults() {
+          questionContainer.classList.add('d-none');
+          resultContainer.classList.remove('d-none');
+
+          finalLevelEl.textContent = userLevel;
+          correctCountEl.textContent = correctAnswers;
+      }
+  });
+</script>
+{% endblock %}

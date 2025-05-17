@@ -1,0 +1,300 @@
+{% extends 'base.html' %} {% block title %}Laporan Perkembangan - Lab Bahasa{%
+endblock %} {% block extra_head %}
+<style>
+  .skill-card {
+    margin-bottom: 20px;
+  }
+  .skill-score {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  .progress {
+    height: 20px;
+    margin-bottom: 10px;
+  }
+  .recommendations-list {
+    margin-top: 20px;
+  }
+  .level-indicator {
+    font-size: 0.9rem;
+    color: #777;
+  }
+  .skill-detail {
+    margin-top: 15px;
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container mt-4">
+  <h1 class="text-center mb-4">Laporan Perkembangan Bahasa</h1>
+
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h2 class="h4 mb-0">Ringkasan</h2>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p>
+                <strong>Tanggal Evaluasi:</strong> {{ report.generated_at }}
+              </p>
+              {% if report.overall_level %}
+              <p>
+                <strong>Level Keseluruhan:</strong>
+                <span
+                  class="badge {% if report.overall_level == 'basic' %}bg-secondary{% elif report.overall_level == 'intermediate' %}bg-primary{% else %}bg-success{% endif %}"
+                >
+                  {{ report.overall_level|capitalize }}
+                </span>
+              </p>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              {% if report.placement %}
+              <p>
+                <strong>Hasil Tes Penempatan:</strong> {{
+                report.placement.score|round(1) }}%
+              </p>
+              <div class="progress">
+                <div
+                  class="progress-bar"
+                  role="progressbar"
+                  style="width: {{ report.placement.score }}%"
+                  aria-valuenow="{{ report.placement.score }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+              {% else %}
+              <div class="alert alert-warning">
+                Anda belum mengambil tes penempatan.
+                <a href="{{ url_for('placement_test') }}" class="alert-link"
+                  >Ambil Tes Sekarang</a
+                >
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="text-center mb-3">Kemampuan Bahasa</h3>
+
+      <div class="row">
+        {% if 'listening' in report.skills %}
+        <div class="col-md-4">
+          <div class="card skill-card">
+            <div class="card-header bg-success text-white">
+              <h2 class="h4 mb-0">Listening</h2>
+            </div>
+            <div class="card-body text-center">
+              <div class="skill-score">
+                {{ report.skills.listening.score|round(1) }}%
+              </div>
+              <div class="progress">
+                <div
+                  class="progress-bar bg-success"
+                  role="progressbar"
+                  style="width: {{ report.skills.listening.score }}%"
+                  aria-valuenow="{{ report.skills.listening.score }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+              <div class="level-indicator">
+                Level: {{ report.skills.listening.level|capitalize }}
+              </div>
+              <div class="skill-detail">
+                <small>{{ report.skills.listening.feedback }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="col-md-4">
+          <div class="card skill-card">
+            <div class="card-header bg-success text-white">
+              <h2 class="h4 mb-0">Listening</h2>
+            </div>
+            <div class="card-body text-center">
+              <div class="alert alert-light">
+                Belum diambil
+                <div class="mt-2">
+                  <a
+                    href="{{ url_for('listening_test') }}"
+                    class="btn btn-sm btn-success"
+                    >Ambil Tes</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %} {% if 'reading' in report.skills %}
+        <div class="col-md-4">
+          <div class="card skill-card">
+            <div class="card-header bg-info text-white">
+              <h2 class="h4 mb-0">Reading</h2>
+            </div>
+            <div class="card-body text-center">
+              <div class="skill-score">
+                {{ report.skills.reading.score|round(1) }}%
+              </div>
+              <div class="progress">
+                <div
+                  class="progress-bar bg-info"
+                  role="progressbar"
+                  style="width: {{ report.skills.reading.score }}%"
+                  aria-valuenow="{{ report.skills.reading.score }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+              <div class="level-indicator">
+                Level: {{ report.skills.reading.level|capitalize }}
+              </div>
+              <div class="skill-detail">
+                <small>{{ report.skills.reading.feedback }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="col-md-4">
+          <div class="card skill-card">
+            <div class="card-header bg-info text-white">
+              <h2 class="h4 mb-0">Reading</h2>
+            </div>
+            <div class="card-body text-center">
+              <div class="alert alert-light">
+                Belum diambil
+                <div class="mt-2">
+                  <a
+                    href="{{ url_for('reading_test') }}"
+                    class="btn btn-sm btn-info"
+                    >Ambil Tes</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %} {% if 'speaking' in report.skills %}
+        <div class="col-md-4">
+          <div class="card skill-card">
+            <div class="card-header bg-warning text-white">
+              <h2 class="h4 mb-0">Speaking</h2>
+            </div>
+            <div class="card-body text-center">
+              <div class="skill-score">
+                {{ report.skills.speaking.score|round(1) }}%
+              </div>
+              <div class="progress">
+                <div
+                  class="progress-bar bg-warning"
+                  role="progressbar"
+                  style="width: {{ report.skills.speaking.score }}%"
+                  aria-valuenow="{{ report.skills.speaking.score }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                ></div>
+              </div>
+              <div class="level-indicator">
+                Level: {{ report.skills.speaking.level|capitalize }}
+              </div>
+              <div class="skill-detail">
+                <small>{{ report.skills.speaking.feedback }}</small>
+              </div>
+              {% if report.skills.speaking.details %}
+              <div class="mt-3">
+                <button
+                  class="btn btn-sm btn-outline-warning"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#speakingDetails"
+                >
+                  Lihat Detail
+                </button>
+                <div class="collapse mt-2" id="speakingDetails">
+                  <div class="card card-body">
+                    <p>
+                      <small
+                        >Pengucapan: {{
+                        report.skills.speaking.details.pronunciation|round(1)
+                        }}%</small
+                      >
+                    </p>
+                    <p>
+                      <small
+                        >Kelancaran: {{
+                        report.skills.speaking.details.fluency|round(1)
+                        }}%</small
+                      >
+                    </p>
+                    <p>
+                      <small
+                        >Konten: {{
+                        report.skills.speaking.details.content|round(1)
+                        }}%</small
+                      >
+                    </p>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="col-md-4">
+          <div class="card skill-card">
+            <div class="card-header bg-warning text-white">
+              <h2 class="h4 mb-0">Speaking</h2>
+            </div>
+            <div class="card-body text-center">
+              <div class="alert alert-light">
+                Belum diambil
+                <div class="mt-2">
+                  <a
+                    href="{{ url_for('speaking_test') }}"
+                    class="btn btn-sm btn-warning"
+                    >Ambil Tes</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-header bg-success text-white">
+          <h2 class="h4 mb-0">Rekomendasi untuk Anda</h2>
+        </div>
+        <div class="card-body">
+          {% if report.recommendations %}
+          <ul class="recommendations-list">
+            {% for recommendation in report.recommendations %}
+            <li>{{ recommendation }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-center">
+            Ambil lebih banyak tes untuk mendapatkan rekomendasi yang
+            disesuaikan.
+          </p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="{{ url_for('evaluation') }}" class="btn btn-primary"
+          >Kembali ke Evaluasi</a
+        >
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

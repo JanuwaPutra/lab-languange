@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Speech Recognition - Lab Bahasa AI{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>Speech Recognition</h1>
+        <p class="lead">Latih kemampuan berbicara dan dengarkan Anda dengan teknologi pengenalan suara canggih.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                Rekam Suara Anda
+            </div>
+            <div class="card-body">
+                {% if error is defined %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+                {% endif %}
+                
+                {% if "FFmpeg tidak tersedia" in error|default('') %}
+                <div class="alert alert-info">
+                    <h5>Alternatif tanpa FFmpeg:</h5>
+                    <p>Jika Anda tidak bisa menginstal FFmpeg, Anda masih bisa menggunakan fitur unggah file audio (.wav):</p>
+                    <ol>
+                        <li>Rekam suara Anda menggunakan aplikasi rekaman bawaan Windows (Voice Recorder)</li>
+                        <li>Simpan sebagai file .wav</li>
+                        <li>Unggah file tersebut menggunakan opsi "Unggah File Audio" di bawah</li>
+                    </ol>
+                </div>
+                {% endif %}
+                
+                <form method="POST" action="/speech" enctype="multipart/form-data" id="speech-form">
+                    <div class="mb-3">
+                        <label for="reference_text" class="form-label">Teks Referensi (untuk dibaca)</label>
+                        <textarea class="form-control" id="reference_text" name="reference_text" rows="3">{{ reference_text|default('Saya sedang belajar bahasa menggunakan teknologi kecerdasan buatan.', true) }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="language" class="form-label">Bahasa</label>
+                        <select class="form-select" id="language" name="language">
+                            <option value="id" {% if language == 'id' or language is not defined %}selected{% endif %}>Bahasa Indonesia</option>
+                            <option value="en" {% if language == 'en' %}selected{% endif %}>Bahasa Inggris</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Rekam Suara</label>
+                        <div class="d-flex align-items-center">
+                            <button type="button" id="record-button" class="btn btn-danger me-2">
+                                <i class="bi bi-mic-fill"></i> Mulai Rekam
+                            </button>
+                            <span id="recording-status">Tidak merekam</span>
+                            <span id="recording-timer" class="ms-2"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="audio" class="form-label">atau Unggah File Audio</label>
+                        <input type="file" class="form-control" id="audio" name="audio" accept="audio/*">
+                    </div>
+                    
+                    <input type="hidden" id="recorded-audio" name="recorded-audio">
+                    <button type="submit" class="btn btn-primary" id="submit-button">Proses Suara</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                Tips Pengucapan
+            </div>
+            <div class="card-body">
+                <h6>Cara Mendapatkan Hasil Terbaik</h6>
+                <ul>
+                    <li>Pastikan Anda berada di lingkungan yang tenang</li>
+                    <li>Bicara dengan jelas dan tidak terlalu cepat</li>
+                    <li>Posisikan mikrofon dengan baik (tidak terlalu dekat atau jauh)</li>
+                    <li>Ucapkan setiap kata dengan lengkap</li>
+                    <li>Lakukan latihan berulang-ulang untuk hasil terbaik</li>
+                </ul>
+                
+                <h6 class="mt-3">Persyaratan Teknis</h6>
+                <ul>
+                    <li><strong>FFmpeg</strong> - Diperlukan untuk konversi audio</li>
+                    <li><strong>Format yang didukung</strong> - WAV, AIFF, atau FLAC</li>
+                    <li><strong>Izin Browser</strong> - Izinkan akses mikrofon</li>
+                </ul>
+                
+                <p class="mt-3"><small>Jika mengalami masalah, coba periksa FFmpeg dengan menjalankan <code>ffmpeg -version</code> di terminal/command prompt.</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if recognized_text is defined %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h3>Hasil Pengenalan Suara</h3>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                Teks Referensi
+            </div>
+            <div class="card-body">
+                <p>{{ reference_text }}</p>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                Teks yang Dikenali
+            </div>
+            <div class="card-body">
+                <p>{{ recognized_text }}</p>
+                
+                {% if recognized_text.startswith('Error') %}
+                <div class="alert alert-warning mt-3">
+                    <h5>Diagnosa Masalah:</h5>
+                    <ul>
+                        <li><strong>Pastikan ffmpeg sudah terinstal</strong> - Aplikasi ini menggunakan ffmpeg untuk mengkonversi format audio</li>
+                        <li><strong>Coba upload file audio</strong> - Jika rekaman tidak berhasil, coba upload file audio berformat WAV</li>
+                        <li><strong>Periksa izin mikrofon</strong> - Pastikan browser Anda mengizinkan akses mikrofon</li>
+                        <li><strong>Format audio</strong> - Beberapa browser mungkin tidak menghasilkan format audio yang kompatibel</li>
+                    </ul>
+                    <p>Perintah untuk menginstal ffmpeg:</p>
+                    <div class="card mb-3">
+                        <div class="card-header">Instalasi FFmpeg di Windows</div>
+                        <div class="card-body">
+                            <p>Metode 1: Menggunakan Chocolatey (paling mudah jika Anda sudah punya Chocolatey)</p>
+                            <pre><code>choco install ffmpeg</code></pre>
+                            
+                            <p>Metode 2: Download dan Instalasi Manual</p>
+                            <ol>
+                                <li>Download FFmpeg dari <a href="https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" target="_blank">sini</a></li>
+                                <li>Ekstrak file zip yang diunduh</li>
+                                <li>Pindahkan folder yang diekstrak ke lokasi yang diinginkan (misalnya: <code>C:\ffmpeg</code>)</li>
+                                <li>Tambahkan path <code>C:\ffmpeg\bin</code> ke variabel lingkungan PATH:
+                                    <ul>
+                                        <li>Klik kanan This PC/My Computer > Properties > Advanced System Settings</li>
+                                        <li>Klik Environment Variables</li>
+                                        <li>Pada bagian System Variables, cari dan pilih "Path" kemudian klik Edit</li>
+                                        <li>Klik New dan tambahkan path ke folder bin FFmpeg (contoh: <code>C:\ffmpeg\bin</code>)</li>
+                                        <li>Klik OK untuk menutup semua jendela dialog</li>
+                                    </ul>
+                                </li>
+                                <li>Buka Command Prompt baru dan ketik <code>ffmpeg -version</code> untuk memverifikasi instalasi</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Setelah Instalasi FFmpeg</div>
+                        <div class="card-body">
+                            <p>Setelah menginstal FFmpeg:</p>
+                            <ol>
+                                <li>Restart browser Anda</li>
+                                <li>Jika menggunakan Cursor/editor kode, restart aplikasi tersebut</li>
+                                <li>Jika menggunakan aplikasi web, restart server web (misalnya dengan <code>python app.py</code>)</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if accuracy is defined and accuracy is not none %}
+        <div class="card mb-4">
+            <div class="card-header">
+                Evaluasi Pengucapan
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h4 class="text-center">Akurasi</h4>
+                        <div class="progress mb-3" style="height: 30px;">
+                            <div class="progress-bar {% if accuracy > 75 %}bg-success{% elif accuracy > 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                role="progressbar" 
+                                style="width: {{ accuracy }}%;" 
+                                aria-valuenow="{{ accuracy }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                {{ accuracy }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h4>Umpan Balik</h4>
+                        <p>{{ feedback }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variabel untuk merekam
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+let startTime;
+let timerInterval;
+let isFFmpegMissing = {{ ("FFmpeg tidak tersedia" in error|default(''))|tojson }};
+
+// Tombol rekam
+const recordButton = document.getElementById('record-button');
+const recordingStatus = document.getElementById('recording-status');
+const recordingTimer = document.getElementById('recording-timer');
+const submitButton = document.getElementById('submit-button');
+const recordedAudioInput = document.getElementById('recorded-audio');
+const speechForm = document.getElementById('speech-form');
+
+// Tambahkan listener untuk jika FFmpeg tidak tersedia
+if (isFFmpegMissing) {
+    console.log("FFmpeg tidak tersedia. Menggunakan metode API langsung.");
+    speechForm.addEventListener('submit', handleDirectApiSubmit);
+}
+
+// Fungsi untuk mengirim audio langsung ke API tanpa FFmpeg
+async function handleDirectApiSubmit(event) {
+    // Hanya lakukan jika ada nilai audio yang terekam
+    if (recordedAudioInput.value && recordedAudioInput.value.length > 0) {
+        event.preventDefault(); // Hentikan submit form normal
+        
+        try {
+            // Tampilkan pesan loading
+            recordingStatus.textContent = 'Mengirim audio ke server...';
+            
+            // Kumpulkan data yang diperlukan
+            const referenceText = document.getElementById('reference_text').value;
+            const language = document.getElementById('language').value;
+            
+            // Kirim permintaan ke API kita
+            const response = await fetch('/api/direct-speech', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    audio: recordedAudioInput.value,
+                    reference_text: referenceText,
+                    language: language
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.error) {
+                // Tampilkan error
+                throw new Error(result.error);
+            }
+            
+            // Simulasikan render template dengan membuat response HTML
+            // Redirect ke URL yang sama dengan parameter query untuk menampilkan hasil
+            const params = new URLSearchParams();
+            params.append('recognized_text', result.recognized_text);
+            params.append('reference_text', result.reference_text);
+            if (result.accuracy !== null) params.append('accuracy', result.accuracy);
+            if (result.feedback !== null) params.append('feedback', result.feedback);
+            params.append('language', language);
+            params.append('direct_api', 'true');
+            
+            // Redirect ke URL yang sama dengan parameter
+            window.location.href = `/speech?${params.toString()}`;
+            
+        } catch (error) {
+            console.error('Error sending audio to API:', error);
+            alert(`Gagal mengirim audio: ${error.message}`);
+            recordingStatus.textContent = 'Gagal mengirim audio. Coba lagi atau gunakan opsi unggah file.';
+        }
+    }
+}
+
+// Fungsi untuk memulai rekaman
+async function startRecording() {
+    try {
+        // Permintaan audio dengan kualitas tinggi
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 44100,
+                channelCount: 1
+            }
+        });
+        
+        // Coba menggunakan format WAV secara langsung jika mungkin
+        let mimeType = '';
+        
+        // Coba cek support untuk mime-type yang berbeda (dalam urutan prioritas)
+        const supportedTypes = [
+            'audio/wav',
+            'audio/wave',
+            'audio/x-wav',
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/ogg;codecs=opus',
+            'audio/mp4',
+            'audio/mpeg'
+        ];
+        
+        for (const type of supportedTypes) {
+            if (MediaRecorder.isTypeSupported(type)) {
+                mimeType = type;
+                console.log('Using audio format:', type);
+                break;
+            }
+        }
+        
+        const options = {
+            audioBitsPerSecond: 128000 // 128 kbps
+        };
+        
+        if (mimeType) {
+            options.mimeType = mimeType;
+        }
+        
+        // Buat perekam media
+        mediaRecorder = new MediaRecorder(stream, options);
+        
+        // Log format yang digunakan
+        console.log('MediaRecorder created with options:', options);
+        console.log('MediaRecorder mimeType:', mediaRecorder.mimeType);
+        
+        audioChunks = [];
+        
+        mediaRecorder.addEventListener('dataavailable', event => {
+            audioChunks.push(event.data);
+        });
+        
+        mediaRecorder.addEventListener('stop', () => {
+            // Gunakan format webm untuk kompatibilitas browser yang lebih baik
+            const audioBlob = new Blob(audioChunks);
+            
+            // Konversi Blob ke base64 untuk dikirim ke server
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = function() {
+                const base64data = reader.result;
+                recordedAudioInput.value = base64data;
+                
+                // Tampilkan audio player untuk debugging jika diinginkan
+                const showDebugPlayer = false;
+                if (showDebugPlayer) {
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audioPreview = document.createElement('audio');
+                    audioPreview.controls = true;
+                    audioPreview.src = audioUrl;
+                    document.getElementById('recording-status').appendChild(audioPreview);
+                }
+            }
+        });
+        
+        mediaRecorder.start();
+        isRecording = true;
+        
+        recordButton.innerHTML = '<i class="bi bi-stop-fill"></i> Berhenti Rekam';
+        recordButton.classList.remove('btn-danger');
+        recordButton.classList.add('btn-warning');
+        recordingStatus.textContent = 'Sedang merekam...';
+        
+        // Mulai timer
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+        
+    } catch (error) {
+        console.error('Error accessing microphone:', error);
+        alert('Gagal mengakses mikrofon. Pastikan Anda mengizinkan akses mikrofon pada browser Anda.');
+    }
+}
+
+// Fungsi untuk berhenti rekaman
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        
+        recordButton.innerHTML = '<i class="bi bi-mic-fill"></i> Mulai Rekam';
+        recordButton.classList.remove('btn-warning');
+        recordButton.classList.add('btn-danger');
+        recordingStatus.textContent = 'Rekaman selesai';
+        
+        // Hentikan timer
+        clearInterval(timerInterval);
+    }
+}
+
+// Fungsi untuk memperbarui timer
+function updateTimer() {
+    const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+    const minutes = Math.floor(elapsedTime / 60).toString().padStart(2, '0');
+    const seconds = (elapsedTime % 60).toString().padStart(2, '0');
+    recordingTimer.textContent = `${minutes}:${seconds}`;
+}
+
+// Event listener untuk tombol rekam
+recordButton.addEventListener('click', () => {
+    if (isRecording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+});
+
+// Event listener untuk form submit
+document.getElementById('speech-form').addEventListener('submit', (event) => {
+    if (isRecording) {
+        event.preventDefault();
+        stopRecording();
+        setTimeout(() => {
+            document.getElementById('speech-form').submit();
+        }, 500);
+    }
+});
+</script>
+{% endblock %} 
